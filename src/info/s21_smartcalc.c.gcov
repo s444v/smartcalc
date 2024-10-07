@@ -1,0 +1,454 @@
+        -:    0:Source:s21_smartcalc.c
+        -:    1:#include "s21_smartcalc.h"
+        -:    2:
+        4:    3:double outputResult(const char* str, double x, int* flagForValidation) {
+        4:    4:  long double result = 0;
+        4:    5:  if (!isValidExpression(str)) {
+        1:    6:    *flagForValidation = 1;
+        -:    7:  } else {
+        3:    8:    numbers* num = init_double_stack();
+        3:    9:    char* s = calloc(MAX_SIZE, sizeof(char));
+        3:   10:    strcpy(s, str);
+        3:   11:    char* p = toPostFix(s);
+        3:   12:    if (strchr(str, 'x')) {
+        1:   13:      result = calculationsWithX(p, num, x);
+        -:   14:    } else {
+        2:   15:      result = calculations(p, num);
+        -:   16:    }
+        3:   17:    remove_double_stack(num);
+        3:   18:    free(s);
+        3:   19:    free(p);
+        3:   20:    free(num);
+        3:   21:    *flagForValidation = 0;
+        -:   22:  }
+        4:   23:  return result;
+        -:   24:}
+        -:   25:
+        2:   26:long double graphResult(const char* str, double x, int* flagForValidation) {
+        2:   27:  long double result = 0.0;
+        2:   28:  if (!isValidExpression(str)) {
+        1:   29:    *flagForValidation = 1;
+        -:   30:  } else {
+        1:   31:    numbers* num = init_double_stack();
+        1:   32:    char* s = calloc(MAX_SIZE, sizeof(char));
+        1:   33:    strcpy(s, str);
+        1:   34:    char* p = toPostFix(s);
+        1:   35:    result = calculationsWithX(p, num, x);
+        1:   36:    free(s);
+        1:   37:    free(p);
+        1:   38:    remove_double_stack(num);
+        1:   39:    free(num);
+        1:   40:    *flagForValidation = 0;
+        -:   41:  }
+        2:   42:  return result;
+        -:   43:}
+        -:   44:
+        4:   45:long double calculationsWithX(char* str, numbers* num, long double x) {
+      190:   46:  for (size_t i = 0; i < strlen(str); i++) {
+      186:   47:    if (str[i] == 'x') {
+        4:   48:      push_into_double(num, x);
+      182:   49:    } else if (isdigit(str[i]) || str[i] == '.') {
+        -:   50:      char* endPtr;
+       51:   51:      long double tmp_numb = strtod(&str[i], &endPtr);
+       51:   52:      push_into_double(num, tmp_numb);
+       51:   53:      i = endPtr - str - 1;
+      131:   54:    } else if (operatorsWithTwoNumberCheck(str[i])) {
+       53:   55:      long double second = pop_double_stack(num);
+       53:   56:      long double first = pop_double_stack(num);
+       53:   57:      push_into_double(num, executeCalc(str[i], first, second));
+       78:   58:    } else if (operatorsWithOneNumberCheck(str[i])) {
+       27:   59:      long double number = pop_double_stack(num);
+       27:   60:      push_into_double(num, executeCalcOne(str[i], number));
+        -:   61:    }
+        -:   62:  }
+        4:   63:  return pop_double_stack(num);
+        -:   64:}
+        -:   65:
+        4:   66:long double calculations(char* str, numbers* num) {
+      189:   67:  for (size_t i = 0; i < strlen(str); i++) {
+      185:   68:    if (isdigit(str[i]) || str[i] == '.') {
+        -:   69:      char* endPtr;
+       53:   70:      long double tmp_numb = strtod(&str[i], &endPtr);
+       53:   71:      push_into_double(num, tmp_numb);
+       53:   72:      i = endPtr - str - 1;
+      132:   73:    } else if (operatorsWithTwoNumberCheck(str[i])) {
+       51:   74:      long double second = pop_double_stack(num);
+       51:   75:      long double first = pop_double_stack(num);
+       51:   76:      push_into_double(num, executeCalc(str[i], first, second));
+       81:   77:    } else if (operatorsWithOneNumberCheck(str[i])) {
+       28:   78:      long double number = pop_double_stack(num);
+       28:   79:      push_into_double(num, executeCalcOne(str[i], number));
+        -:   80:    }
+        -:   81:  }
+        4:   82:  return pop_double_stack(num);
+        -:   83:}
+        -:   84:
+      400:   85:int operatorsWithTwoNumberCheck(char c) {
+      400:   86:  int flag = 0;
+      400:   87:  if (strchr("+/*^-%", c)) {
+      210:   88:    flag = 1;
+        -:   89:  }
+      400:   90:  return flag;
+        -:   91:}
+        -:   92:
+      318:   93:int operatorsWithOneNumberCheck(char c) {
+      318:   94:  int flag = 0;
+      318:   95:  if (strchr("sctlgqioa~", c)) {
+      109:   96:    flag = 1;
+        -:   97:  }
+      318:   98:  return flag;
+        -:   99:}
+        -:  100:
+      104:  101:long double executeCalc(char s, long double first, long double second) {
+      104:  102:  long double result = 0.0;
+      104:  103:  if (s == '+') {
+       35:  104:    result = first + second;
+       69:  105:  } else if (s == '/')
+        6:  106:    result = first / second;
+       63:  107:  else if (s == '-')
+       33:  108:    result = first - second;
+       30:  109:  else if (s == '*')
+       18:  110:    result = first * second;
+       12:  111:  else if (s == '^')
+        6:  112:    result = pow(first, second);
+        6:  113:  else if (s == '%')
+        6:  114:    result = fmod(first, second);
+      104:  115:  return result;
+        -:  116:}
+        -:  117:
+       55:  118:long double executeCalcOne(char s, long double first) {
+       55:  119:  long double result = 0.0;
+       55:  120:  if (s == '~') {
+        1:  121:    result = (0.0 - first);
+       54:  122:  } else if (s == 's')
+        6:  123:    result = sin(first);
+       48:  124:  else if (s == 'c')
+        6:  125:    result = cos(first);
+       42:  126:  else if (s == 't')
+        6:  127:    result = tan(first);
+       36:  128:  else if (s == 'l')
+        6:  129:    result = log(first);
+       30:  130:  else if (s == 'g')
+        6:  131:    result = log10(first);
+       24:  132:  else if (s == 'q')
+        6:  133:    result = sqrt(first);
+       18:  134:  else if (s == 'i')
+        6:  135:    result = asin(first);
+       12:  136:  else if (s == 'o')
+        6:  137:    result = acos(first);
+        6:  138:  else if (s == 'a')
+        6:  139:    result = atan(first);
+       55:  140:  return result;
+        -:  141:}
+        -:  142:
+        8:  143:char* toPostFix(char* str) {
+        8:  144:  char* postfixExp = calloc(1, sizeof(char));
+        8:  145:  operators* op = init_stack();
+        8:  146:  int n = 20;
+      399:  147:  for (size_t i = 0; i < strlen(str); i++) {
+      391:  148:    if ((isdigit(str[i]) || str[i] == '.') || str[i] == 'x') {
+      108:  149:      if (str[i] == 'x') {
+        4:  150:        postfixExp =
+        4:  151:            realloc(postfixExp, (strlen(postfixExp) + n) * sizeof(char));
+        4:  152:        stringWork(&postfixExp, 'x');
+        -:  153:      } else {
+        -:  154:        char* endPtr;
+      104:  155:        long double tmp_numb = strtod(&str[i], &endPtr);
+      104:  156:        char* buffer = calloc(n, sizeof(char));
+      104:  157:        snprintf(buffer, n, "%Lf", tmp_numb);
+      104:  158:        stringWork(&buffer, ':');
+      104:  159:        postfixExp =
+      104:  160:            realloc(postfixExp, (strlen(postfixExp) + n) * sizeof(char));
+      104:  161:        strcat(postfixExp, buffer);
+      104:  162:        i = endPtr - str - 1;
+      104:  163:        free(buffer);
+        -:  164:      }
+      283:  165:    } else if (str[i] == '(') {
+       62:  166:      push(op, &str[i]);
+      221:  167:    } else if (str[i] == ')') {
+       70:  168:      while (!is_stack_empty(op) && peek(op) != '(') {
+        8:  169:        stringWork(&postfixExp, pop(op));
+        -:  170:      }
+       62:  171:      pop(op);
+      159:  172:    } else if (operatorsWithOneNumberCheck(str[i])) {
+       54:  173:      i = dealWithFunctions(str, op, postfixExp, i);
+      105:  174:    } else if (operatorsWithTwoNumberCheck(str[i])) {
+      105:  175:      if (str[i] == '-' && i > 1 && operatorsWithTwoNumberCheck(str[i - 1])) {
+        1:  176:        str[i] = '~';
+        -:  177:      }
+      417:  178:      while (!is_stack_empty(op) &&
+      175:  179:             operationPriority(peek(op)) >= operationPriority(str[i])) {
+      137:  180:        stringWork(&postfixExp, pop(op));
+        -:  181:      }
+      105:  182:      push(op, &str[i]);
+        -:  183:    }
+        -:  184:  }
+       22:  185:  while (!is_stack_empty(op)) {
+       14:  186:    stringWork(&postfixExp, pop(op));
+        -:  187:  }
+        8:  188:  free(op);
+        8:  189:  return postfixExp;
+        -:  190:}
+        -:  191:
+      232:  192:bool isValidOperator(char op) {
+      180:  193:  return op == '+' || op == '-' || op == '*' || op == '/' || op == '^' ||
+      412:  194:         op == '%' || op == '~';
+        -:  195:}
+        -:  196:
+       75:  197:bool isValidFunction(const char* func) {
+       66:  198:  return strcmp(func, "sin") == 0 || strcmp(func, "cos") == 0 ||
+       57:  199:         strcmp(func, "tan") == 0 || strcmp(func, "asin") == 0 ||
+       44:  200:         strcmp(func, "acos") == 0 || strcmp(func, "atan") == 0 ||
+      151:  201:         strcmp(func, "sqrt") == 0 || strcmp(func, "ln") == 0 ||
+       10:  202:         strcmp(func, "lg") == 0;
+        -:  203:}
+        -:  204:
+       10:  205:bool isValidExpression(const char* expression) {
+       10:  206:  bool result = true;
+       10:  207:  int parentheses_count = 0;
+       10:  208:  bool expecting_operand = true;
+      559:  209:  while (*expression && result) {
+      549:  210:    if (isdigit(*expression) || *expression == '.' || *expression == 'x') {
+      222:  211:      expression++;
+      222:  212:      expecting_operand = false;
+      327:  213:    } else if (*expression == '(') {
+       10:  214:      parentheses_count++;
+       10:  215:      expression++;
+      317:  216:    } else if (*expression == ')') {
+       85:  217:      parentheses_count--;
+       85:  218:      expression++;
+      232:  219:    } else if (isValidOperator(*expression)) {
+      157:  220:      if (expecting_operand && *expression != '-') result = false;
+      157:  221:      expression++;
+      157:  222:      expecting_operand = true;
+        -:  223:    } else {
+        -:  224:      char buffer[10];
+       75:  225:      int i = 0;
+      313:  226:      while (isalpha(*expression) && i < 9) {
+      238:  227:        buffer[i++] = *expression++;
+        -:  228:      }
+       75:  229:      buffer[i] = '\0';
+       75:  230:      if (isValidFunction(buffer)) {
+      74*:  231:        if (*expression != '(') result = false;
+       74:  232:        parentheses_count++;
+       74:  233:        expression++;
+        -:  234:      } else {
+        1:  235:        result = false;
+        -:  236:      }
+        -:  237:    }
+        -:  238:  }
+       10:  239:  if (parentheses_count != 0) result = false;
+       10:  240:  if (expecting_operand) {
+        4:  241:    result = false;
+        -:  242:  }
+       10:  243:  return result;
+        -:  244:}
+        -:  245:
+       54:  246:int dealWithFunctions(char* str, operators* op, char* postFix, int i) {
+       54:  247:  if (str[i] == 'l' && str[i + 1] == 'g') {
+       12:  248:    while (!is_stack_empty(op) &&
+        6:  249:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  250:      stringWork(&postFix, pop(op));
+        -:  251:    }
+        6:  252:    push(op, "g");
+        6:  253:    i++;
+       48:  254:  } else if (str[i] == 'l' && str[i + 1] == 'n') {
+       12:  255:    while (!is_stack_empty(op) &&
+        6:  256:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  257:      stringWork(&postFix, pop(op));
+        -:  258:    }
+        6:  259:    push(op, "l");
+        6:  260:    i++;
+       42:  261:  } else if (str[i] == 's' && str[i + 1] == 'q') {
+       12:  262:    while (!is_stack_empty(op) &&
+        6:  263:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  264:      stringWork(&postFix, pop(op));
+        -:  265:    }
+        6:  266:    push(op, "q");
+        6:  267:    i = i + 3;
+       36:  268:  } else if (str[i] == 's' && str[i + 1] == 'i') {
+       12:  269:    while (!is_stack_empty(op) &&
+        6:  270:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  271:      stringWork(&postFix, pop(op));
+        -:  272:    }
+        6:  273:    push(op, "s");
+        6:  274:    i = i + 2;
+       30:  275:  } else if (str[i] == 'c' && str[i + 1] == 'o') {
+       12:  276:    while (!is_stack_empty(op) &&
+        6:  277:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  278:      stringWork(&postFix, pop(op));
+        -:  279:    }
+        6:  280:    push(op, "c");
+        6:  281:    i = i + 2;
+       24:  282:  } else if (str[i] == 't' && str[i + 1] == 'a') {
+       12:  283:    while (!is_stack_empty(op) &&
+        6:  284:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  285:      stringWork(&postFix, pop(op));
+        -:  286:    }
+        6:  287:    push(op, "t");
+        6:  288:    i = i + 2;
+       18:  289:  } else if (str[i] == 'a' && str[i + 1] == 's') {
+       12:  290:    while (!is_stack_empty(op) &&
+        6:  291:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  292:      stringWork(&postFix, pop(op));
+        -:  293:    }
+        6:  294:    push(op, "i");
+        6:  295:    i = i + 3;
+       12:  296:  } else if (str[i] == 'a' && str[i + 1] == 'c') {
+       12:  297:    while (!is_stack_empty(op) &&
+        6:  298:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  299:      stringWork(&postFix, pop(op));
+        -:  300:    }
+        6:  301:    push(op, "o");
+        6:  302:    i = i + 3;
+        6:  303:  } else if (str[i] == 'a' && str[i + 1] == 't') {
+       12:  304:    while (!is_stack_empty(op) &&
+        6:  305:           operationPriority(peek(op)) >= operationPriority('f')) {
+    #####:  306:      stringWork(&postFix, pop(op));
+        -:  307:    }
+        6:  308:    push(op, "a");
+        6:  309:    i = i + 3;
+        -:  310:  }
+       54:  311:  return i;
+        -:  312:}
+        -:  313:
+      267:  314:void stringWork(char** str, char c) {
+      267:  315:  size_t len = strlen(*str);
+      267:  316:  *str = (char*)realloc(*str, (len + 2) * sizeof(char));
+        -:  317:
+      267:  318:  if (*str == NULL) {
+    #####:  319:    printf("Ошибка выделения памяти\n");
+    #####:  320:    exit(1);
+        -:  321:  }
+      267:  322:  (*str)[len] = c;
+      267:  323:  (*str)[len + 1] = '\0';
+      267:  324:}
+        -:  325:
+      458:  326:int operationPriority(int operator_code) {
+      458:  327:  int operator_precedence = 0;
+      458:  328:  if (operator_code == '(') {
+       14:  329:    operator_precedence = OPEN_BRACKET;
+      444:  330:  } else if (operator_code == '+') {
+      117:  331:    operator_precedence = PLUS;
+      327:  332:  } else if (operator_code == '-') {
+      130:  333:    operator_precedence = MINUS;
+      197:  334:  } else if (operator_code == '*') {
+       33:  335:    operator_precedence = MULT;
+      164:  336:  } else if (operator_code == '/') {
+       24:  337:    operator_precedence = DIV;
+      140:  338:  } else if (operator_code == '%') {
+       12:  339:    operator_precedence = MOD;
+      128:  340:  } else if (operator_code == '^') {
+       24:  341:    operator_precedence = POW;
+      104:  342:  } else if (operator_code == '~') {
+        2:  343:    operator_precedence = UNARY_MINUS;
+      102:  344:  } else if (strchr("sctlgqioaf", operator_code)) {
+      102:  345:    operator_precedence = FUN;
+        -:  346:  }
+      458:  347:  return operator_precedence;
+        -:  348:}
+        -:  349:
+        8:  350:operators* init_stack() {
+        8:  351:  bool is_error = false;
+        8:  352:  operators* newstack = (operators*)calloc(1, sizeof(operators));
+        8:  353:  if (newstack == NULL) {
+    #####:  354:    is_error = true;
+        -:  355:  } else {
+        8:  356:    newstack->length = 0;
+        8:  357:    if (newstack->tokens == NULL) {
+    #####:  358:      is_error = true;
+        -:  359:    }
+        -:  360:  }
+        -:  361:
+       8*:  362:  return is_error == 0 ? newstack : NULL;
+        -:  363:}
+        -:  364:
+      908:  365:bool is_stack_empty(operators* stack) {
+      908:  366:  if (stack == NULL) {
+    #####:  367:    return false;
+        -:  368:  }
+        -:  369:
+      908:  370:  return (stack->length == 0);
+        -:  371:}
+        -:  372:
+      221:  373:bool is_stack_full(operators* stack) {
+      221:  374:  if (stack == NULL) {
+    #####:  375:    return false;
+        -:  376:  }
+        -:  377:
+      221:  378:  return stack->length == MAX_SIZE;
+        -:  379:}
+        -:  380:
+      221:  381:void push(operators* stack, char* token) {
+      221:  382:  if (stack != NULL && !is_stack_full(stack)) {
+      221:  383:    stack->tokens[stack->length] = *token;
+      221:  384:    stack->length++;
+        -:  385:  }
+      221:  386:}
+        -:  387:
+      299:  388:char peek(operators* stack) {
+      299:  389:  if (stack == NULL || is_stack_empty(stack)) {
+    #####:  390:    return 0;
+        -:  391:  }
+        -:  392:
+      299:  393:  return stack->tokens[stack->length - 1];
+        -:  394:}
+        -:  395:
+      221:  396:char pop(operators* stack) {
+      221:  397:  if (stack == NULL || is_stack_empty(stack)) {
+    #####:  398:    return 0;
+        -:  399:  }
+        -:  400:
+      221:  401:  stack->length--;
+      221:  402:  return stack->tokens[stack->length];
+        -:  403:}
+        -:  404:
+        7:  405:numbers* init_double_stack() {
+        7:  406:  numbers* newstack = (numbers*)calloc(1, sizeof(numbers));
+        7:  407:  if (newstack != NULL) {
+        7:  408:    newstack->length = 0;
+        7:  409:    newstack->values = (long double*)calloc(MAX_SIZE, sizeof(long double*));
+        -:  410:  }
+        -:  411:
+       7*:  412:  return newstack->values != NULL ? newstack : NULL;
+        -:  413:}
+        -:  414:
+      271:  415:bool is_double_stack_empty(numbers* stack) {
+      271:  416:  if (stack == NULL) {
+    #####:  417:    return false;
+        -:  418:  }
+        -:  419:
+      271:  420:  return stack->length == 0;
+        -:  421:}
+        -:  422:
+      267:  423:bool is_double_stack_full(numbers* stack) {
+      267:  424:  if (stack == NULL) {
+    #####:  425:    return false;
+        -:  426:  }
+        -:  427:
+      267:  428:  return stack->length == MAX_SIZE;
+        -:  429:}
+        -:  430:
+      267:  431:void push_into_double(numbers* stack, long double value) {
+      267:  432:  if (stack != NULL && !is_double_stack_full(stack)) {
+      267:  433:    stack->values[stack->length] = value;
+      267:  434:    stack->length++;
+        -:  435:  }
+      267:  436:}
+        -:  437:
+      271:  438:long double pop_double_stack(numbers* stack) {
+      271:  439:  if (stack == NULL || is_double_stack_empty(stack)) {
+        4:  440:    return 0;
+        -:  441:  }
+        -:  442:
+      267:  443:  stack->length--;
+      267:  444:  return stack->values[stack->length];
+        -:  445:}
+        -:  446:
+        7:  447:void remove_double_stack(numbers* stack) {
+        7:  448:  if (stack != NULL && stack->values != NULL) {
+        7:  449:    free(stack->values);
+        7:  450:    stack->values = NULL;
+        7:  451:    stack->length = 0;
+        -:  452:  }
+        7:  453:}

@@ -1,0 +1,142 @@
+        -:    0:Source:tests/test_s21_smartcalc.c
+        -:    1:#include "tests.h"
+        -:    2:
+        1:    3:START_TEST(smart_calculation) {
+        1:    4:  numbers *num1 = init_double_stack();
+        1:    5:  numbers *num2 = init_double_stack();
+        1:    6:  char *first = toPostFix(
+        -:    7:      "2.1+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:    8:      "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)");
+        1:    9:  char *second = toPostFix("-(-1)");
+       1*:   10:  ck_assert_double_eq_tol(
+        -:   11:      calculations(first, num1),
+        -:   12:      (2.1 + 2.1 - 2.1 * 3 - fmod((3 * 4 + 5), 4) - sin(2) - cos(1) / sqrt(4) -
+        -:   13:       pow(log(2), log10(3)) + atan(1) + asin(1) + acos(1) + tan(1)),
+        -:   14:      0.0000001);
+       1*:   15:  ck_assert_double_eq_tol(calculations(second, num2), (-(-1)), 0.0000001);
+        1:   16:  remove_double_stack(num2);
+        1:   17:  remove_double_stack(num1);
+        1:   18:  free(num1);
+        1:   19:  free(num2);
+        1:   20:  free(second);
+        1:   21:  free(first);
+        1:   22:}
+        -:   23:END_TEST
+        -:   24:
+        1:   25:START_TEST(smart_calculation_with_x) {
+        1:   26:  numbers *num = init_double_stack();
+        1:   27:  char *first = toPostFix("-(-x)");
+        1:   28:  char *second = toPostFix(
+        -:   29:      "2.1*x+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   30:      "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)");
+       1*:   31:  ck_assert_double_eq_tol(calculationsWithX(second, num, 3.01),
+        -:   32:                          (2.1 * 3.01 + 2.1 - 2.1 * 3 - fmod((3 * 4 + 5), 4) -
+        -:   33:                           sin(2) - cos(1) / sqrt(4) - pow(log(2), log10(3)) +
+        -:   34:                           atan(1) + asin(1) + acos(1) + tan(1)),
+        -:   35:                          0.0000001);
+       1*:   36:  ck_assert_double_eq_tol(calculationsWithX(first, num, 1), (-(-1)), 0.0000001);
+        1:   37:  remove_double_stack(num);
+        1:   38:  free(num);
+        1:   39:  free(second);
+        1:   40:  free(first);
+        1:   41:}
+        -:   42:END_TEST
+        -:   43:
+        1:   44:START_TEST(smart_calculation_main) {
+        1:   45:  int flag = 0;
+        1:   46:  int flag_error = 0;
+       1*:   47:  ck_assert_double_eq_tol(
+        -:   48:      outputResult("2.1*x+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   49:                   "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)",
+        -:   50:                   0, &flag),
+        -:   51:      (2.1 * 0 + 2.1 - 2.1 * 3 - fmod((3 * 4 + 5), 4) - sin(2) -
+        -:   52:       cos(1) / sqrt(4) - pow(log(2), log10(3)) + atan(1) + asin(1) + acos(1) +
+        -:   53:       tan(1)),
+        -:   54:      0.0000001);
+       1*:   55:  ck_assert_double_eq_tol(
+        -:   56:      graphResult("2.1*x+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   57:                  "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)",
+        -:   58:                  0, &flag),
+        -:   59:      (2.1 * 0 + 2.1 - 2.1 * 3 - fmod((3 * 4 + 5), 4) - sin(2) -
+        -:   60:       cos(1) / sqrt(4) - pow(log(2), log10(3)) + atan(1) + asin(1) + acos(1) +
+        -:   61:       tan(1)),
+        -:   62:      0.0000001);
+       1*:   63:  ck_assert_double_eq_tol(
+        -:   64:      outputResult("2.1*3.0001+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   65:                   "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)",
+        -:   66:                   0, &flag),
+        -:   67:      (2.1 * 3.0001 + 2.1 - 2.1 * 3 - fmod((3 * 4 + 5), 4) - sin(2) -
+        -:   68:       cos(1) / sqrt(4) - pow(log(2), log10(3)) + atan(1) + asin(1) + acos(1) +
+        -:   69:       tan(1)),
+        -:   70:      0.0000001);
+       1*:   71:  ck_assert_double_eq_tol(
+        -:   72:      outputResult("2.1*2.1*-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   73:                   "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)",
+        -:   74:                   0, &flag),
+        -:   75:      (2.1 * 2.1 * -2.1 * 3 - fmod((3 * 4 + 5), 4) - sin(2) - cos(1) / sqrt(4) -
+        -:   76:       pow(log(2), log10(3)) + atan(1) + asin(1) + acos(1) + tan(1)),
+        -:   77:      0.0000001);
+        1:   78:  outputResult(
+        -:   79:      "2.1*2.1*-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   80:      "sqrt(4)-ln(2)^lg(3)+atan(1)++asin(1)+acos(1)+tan(1)",
+        -:   81:      0, &flag_error);
+        1:   82:  graphResult(
+        -:   83:      "2.1*2.1*-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   84:      "sqrt(4)-ln(2)^lg(3)+atan(1)++asin(1)+acos(1)+tan(1)",
+        -:   85:      0, &flag_error);
+       1*:   86:  ck_assert_int_eq(flag_error, 1);
+       1*:   87:  ck_assert_int_eq(flag, 0);
+        1:   88:}
+        -:   89:END_TEST
+        -:   90:
+        1:   91:START_TEST(smart_calculation_validation) {
+       1*:   92:  ck_assert_int_eq(
+        -:   93:      isValidExpression("2.1+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   94:                        "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1)"),
+        -:   95:      1);
+       1*:   96:  ck_assert_int_eq(
+        -:   97:      isValidExpression("2.1+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:   98:                        "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)+tan(1))"),
+        -:   99:      0);
+       1*:  100:  ck_assert_int_eq(
+        -:  101:      isValidExpression("2.1+2.1-2.1*3-(3*4+5)%4-sin(2)-cos(1)/"
+        -:  102:                        "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)++tan(1)"),
+        -:  103:      0);
+       1*:  104:  ck_assert_int_eq(
+        -:  105:      isValidExpression("2.1+2.1-2.1*3-(3*4+5)%4-sn(2)-cos(1)/"
+        -:  106:                        "sqrt(4)-ln(2)^lg(3)+atan(1)+asin(1)+acos(1)++tan(1)"),
+        -:  107:      0);
+        1:  108:}
+        -:  109:END_TEST
+        -:  110:
+        1:  111:Suite *test_s21_smartcalc() {
+        1:  112:  TCase *tc1_1 = tcase_create("s21_smartcalc");
+        -:  113:
+        1:  114:  tcase_add_test(tc1_1, smart_calculation);  // 1
+        1:  115:  tcase_add_test(tc1_1, smart_calculation_with_x);
+        1:  116:  tcase_add_test(tc1_1, smart_calculation_validation);
+        1:  117:  tcase_add_test(tc1_1, smart_calculation_main);  // 2
+        -:  118:
+        1:  119:  Suite *s1 = suite_create("s21_smartcalc");
+        1:  120:  suite_add_tcase(s1, tc1_1);
+        -:  121:
+        1:  122:  return s1;
+        -:  123:}
+        -:  124:
+        1:  125:int main(void) {
+        1:  126:  int failed_tests = 0;  // счётчик проваленных тестов
+        1:  127:  Suite *test_s21_smartcalc_func[] = {test_s21_smartcalc(), NULL};
+        -:  128:
+        2:  129:  for (int i = 0; test_s21_smartcalc_func[i] != NULL; i++) {
+        1:  130:    SRunner *srun = srunner_create(test_s21_smartcalc_func[i]);
+        -:  131:
+        1:  132:    srunner_set_fork_status(srun, CK_NOFORK);
+        1:  133:    srunner_run_all(srun, CK_NORMAL);
+        -:  134:
+        1:  135:    failed_tests += srunner_ntests_failed(srun);
+        1:  136:    srunner_free(srun);
+        -:  137:  }
+        1:  138:  printf("========= FAILED: %d =========\n", failed_tests);
+        -:  139:
+        1:  140:  return failed_tests == 0 ? 0 : 1;
+        -:  141:}
